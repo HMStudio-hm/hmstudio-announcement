@@ -1,4 +1,4 @@
-// HMStudio Announcement Bar v1.0.1
+// HMStudio Announcement Bar v1.0.2
 // Created by HMStudio
 // https://github.com/your-username/hmstudio-announcement
 
@@ -24,11 +24,14 @@
   
     async function fetchAnnouncementSettings() {
       try {
-        const response = await fetch(`https://2c31-105-157-180-129.ngrok-free.app/api/announcement?storeId=${storeId}`);
+        // Update the URL to use your Firebase function URL
+        const response = await fetch(`https://europe-west3-hmstudio-85f42.cloudfunctions.net/getAnnouncementSettings?storeId=${storeId}`);
         if (!response.ok) {
           throw new Error(`Failed to fetch settings: ${response.statusText}`);
         }
-        return await response.json();
+        const data = await response.json();
+        console.log('Fetched announcement settings:', data);
+        return data;
       } catch (error) {
         console.error('Error fetching announcement settings:', error);
         return null;
