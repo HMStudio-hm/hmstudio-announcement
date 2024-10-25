@@ -24,7 +24,7 @@
 
   async function fetchAnnouncementSettings() {
     try {
-      const response = await fetch(`https://your-app-url.com/api/announcement?storeId=${storeId}`);
+      const response = await fetch(`https://2c31-105-157-180-129.ngrok-free.app/api/announcement?storeId=${storeId}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch settings: ${response.statusText}`);
       }
