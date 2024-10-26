@@ -1,4 +1,4 @@
-// HMStudio Announcement Bar v1.0.4
+// HMStudio Announcement Bar v1.0.5
 // Created by HMStudio
 // https://github.com/your-username/hmstudio-announcement
 
@@ -59,61 +59,66 @@
       z-index: 999999;
     `;
 
-    // Create scrolling container
-    const scrollContainer = document.createElement('div');
-    scrollContainer.className = 'announcement-scroll-container';
-    scrollContainer.style.cssText = `
+    // Create ticker container
+    const tickerContainer = document.createElement('div');
+    tickerContainer.className = 'hmstudio-ticker-container';
+    tickerContainer.style.cssText = `
       display: flex;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
       position: relative;
-      white-space: nowrap;
-      will-change: transform;
     `;
 
-    // Create primary content container
-    const contentContainer = document.createElement('div');
-    contentContainer.className = 'announcement-content';
-    contentContainer.style.cssText = `
+    // Create ticker content
+    const ticker = document.createElement('div');
+    ticker.className = 'hmstudio-ticker';
+    ticker.style.cssText = `
       display: flex;
-      animation: scrollLeft ${settings.announcementSpeed}s linear infinite;
+      align-items: center;
+      white-space: nowrap;
+      will-change: transform;
+      position: absolute;
+      left: 0;
+      animation: hmstudio-ticker ${settings.announcementSpeed}s linear infinite;
       padding-left: 100%;
     `;
 
-    // Add text with proper spacing
-    const textSpan = document.createElement('span');
-    textSpan.style.cssText = `
-      white-space: nowrap;
-      padding: 0 50px;
-    `;
-    textSpan.textContent = settings.announcementText;
+    // Calculate how many copies we need
+    const textLength = settings.announcementText.length;
+    const repeatCount = Math.ceil((window.innerWidth * 2) / (textLength * 8)) + 2;
 
-    // Create duplicate for seamless loop
-    const textSpan2 = textSpan.cloneNode(true);
-
-    // Add text elements to content container
-    contentContainer.appendChild(textSpan);
-    contentContainer.appendChild(textSpan2);
+    // Add text copies to ensure smooth scrolling
+    for (let i = 0; i < repeatCount; i++) {
+      const textSpan = document.createElement('span');
+      textSpan.textContent = settings.announcementText;
+      textSpan.style.cssText = `
+        padding: 0 20px;
+        display: inline-block;
+      `;
+      ticker.appendChild(textSpan);
+    }
 
     // Add animation keyframes
     const style = document.createElement('style');
     style.textContent = `
-      @keyframes scrollLeft {
+      @keyframes hmstudio-ticker {
         0% {
-          transform: translateX(0);
+          transform: translate3d(0, 0, 0);
         }
         100% {
-          transform: translateX(-100%);
+          transform: translate3d(-100%, 0, 0);
         }
       }
-      
-      .announcement-content {
-        -webkit-font-smoothing: antialiased;
+      .hmstudio-ticker-container:hover .hmstudio-ticker {
+        animation-play-state: paused;
       }
     `;
     document.head.appendChild(style);
 
     // Assemble the components
-    scrollContainer.appendChild(contentContainer);
-    bar.appendChild(scrollContainer);
+    tickerContainer.appendChild(ticker);
+    bar.appendChild(tickerContainer);
 
     // Insert at the top of the page
     const targetLocation = document.querySelector('.header');
@@ -123,46 +128,43 @@
       document.body.insertBefore(bar, document.body.firstChild);
     }
 
-    // Function to handle visibility changes
-    function handleVisibilityChange() {
-      const content = document.querySelector('.announcement-content');
-      if (content) {
-        if (document.hidden) {
-          content.style.animationPlayState = 'paused';
-        } else {
-          content.style.animationPlayState = 'running';
+    // Function to handle resize and update text copies if needed
+    function handleResize() {
+      const newRepeatCount = Math.ceil((window.innerWidth * 2) / (textLength * 8)) + 2;
+      if (newRepeatCount > ticker.children.length) {
+        // Add more text copies if needed
+        for (let i = ticker.children.length; i < newRepeatCount; i++) {
+          const textSpan = document.createElement('span');
+          textSpan.textContent = settings.announcementText;
+          textSpan.style.cssText = `
+            padding: 0 20px;
+            display: inline-block;
+          `;
+          ticker.appendChild(textSpan);
         }
       }
     }
 
-    // Add visibility change listener
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    // Pause animation when not in viewport
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        const content = entry.target.querySelector('.announcement-content');
-        if (content) {
-          content.style.animationPlayState = entry.isIntersecting ? 'running' : 'paused';
-        }
-      });
-    });
-
-    observer.observe(bar);
+    // Add resize listener
+    window.addEventListener('resize', handleResize);
   }
 
   // Initialize announcement bar
   async function initializeAnnouncementBar() {
     const settings = await fetchAnnouncementSettings();
     if (settings && settings.announcementEnabled) {
-      createAnnouncementBar(settings);
+      createAnnouncementBar({
+        ...settings,
+        // Convert the speed to be more appropriate for the new animation style
+        announcementSpeed: Math.max(5, Math.min(60, settings.announcementSpeed)) * 2
+      });
     }
   }
 
   // Run initialization
   initializeAnnouncementBar();
 
-  // Re-initialize on dynamic content changes
+  // Optional: Re-initialize on dynamic content changes
   const observer = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
       if (mutation.type === 'childList' && !document.getElementById('hmstudio-announcement-bar')) {
