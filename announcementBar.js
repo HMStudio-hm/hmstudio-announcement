@@ -1,4 +1,4 @@
-// HMStudio Announcement Bar v1.2.2
+// HMStudio Announcement Bar v1.2.3
 // Created by HMStudio
 // https://github.com/your-username/hmstudio-announcement
 
@@ -111,7 +111,7 @@
     // Animation variables
     let currentPosition = 0;
     let lastTimestamp = 0;
-    const pixelsPerSecond = (70 - settings.announcementSpeed) * 20; // Adjust speed
+    const pixelsPerSecond = (110 - settings.announcementSpeed) * 20; // Adjust speed
     let animationId;
     let isPaused = false;
 
