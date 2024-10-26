@@ -1,4 +1,4 @@
-// HMStudio Announcement Bar v1.0.8
+// HMStudio Announcement Bar v1.0.9
 // Created by HMStudio
 // https://github.com/your-username/hmstudio-announcement
 
@@ -75,40 +75,34 @@
       height: 100%;
       align-items: center;
       position: absolute;
-      left: 0;
+      right: 0;
       top: 0;
       white-space: nowrap;
       will-change: transform;
       animation: hmstudio-scroll ${settings.announcementSpeed}s linear infinite;
     `;
 
-    // Create two spans to ensure continuous flow
-    const textSpan1 = document.createElement('span');
-    textSpan1.textContent = settings.announcementText;
-    textSpan1.style.cssText = `
-      display: inline-block;
-      padding: 0 2rem;
-    `;
-
-    const textSpan2 = document.createElement('span');
-    textSpan2.textContent = settings.announcementText;
-    textSpan2.style.cssText = `
-      display: inline-block;
-      padding: 0 2rem;
-    `;
-
-    marqueeInner.appendChild(textSpan1);
-    marqueeInner.appendChild(textSpan2);
+    // Create multiple copies of the text for seamless scrolling
+    // Adding 4 copies ensures smooth continuous flow
+    for (let i = 0; i < 4; i++) {
+      const textSpan = document.createElement('span');
+      textSpan.textContent = settings.announcementText;
+      textSpan.style.cssText = `
+        display: inline-block;
+        padding: 0 2rem;
+      `;
+      marqueeInner.appendChild(textSpan);
+    }
 
     // Add animation keyframes
     const style = document.createElement('style');
     style.textContent = `
       @keyframes hmstudio-scroll {
-        from {
+        0% {
           transform: translate3d(0, 0, 0);
         }
-        to {
-          transform: translate3d(${-50}%, 0, 0);
+        100% {
+          transform: translate3d(25%, 0, 0);
         }
       }
       .hmstudio-marquee-wrapper:hover .hmstudio-marquee-inner {
@@ -131,19 +125,21 @@
 
     // Calculate text width and adjust animation
     function calculateAndAdjustAnimation() {
-      const textWidth = textSpan1.offsetWidth;
-      const windowWidth = window.innerWidth;
-      const totalDistance = textWidth * 2; // Distance to move is 2x text width
+      const singleTextWidth = marqueeInner.children[0].offsetWidth;
+      const totalWidth = singleTextWidth * 4; // Total width of all text copies
+      
+      // Adjust the inner container
+      marqueeInner.style.width = `${totalWidth}px`;
 
       // Recreate animation with calculated values
       const newStyle = document.createElement('style');
       newStyle.textContent = `
         @keyframes hmstudio-scroll {
           0% {
-            transform: translate3d(0, 0, 0);
+            transform: translate3d(-75%, 0, 0);
           }
           100% {
-            transform: translate3d(-50%, 0, 0);
+            transform: translate3d(0%, 0, 0);
           }
         }
       `;
@@ -154,11 +150,16 @@
       }
     }
 
-    // Initial calculation
+    // Initial calculation with a slight delay to ensure accurate measurements
     setTimeout(calculateAndAdjustAnimation, 100);
 
     // Recalculate on resize
     window.addEventListener('resize', calculateAndAdjustAnimation);
+
+    // Optional: Recalculate on font load to handle custom fonts
+    if (document.fonts) {
+      document.fonts.ready.then(calculateAndAdjustAnimation);
+    }
   }
 
   // Initialize announcement bar
@@ -167,7 +168,7 @@
     if (settings && settings.announcementEnabled) {
       createAnnouncementBar({
         ...settings,
-        announcementSpeed: Math.max(5, Math.min(60, settings.announcementSpeed))
+        announcementSpeed: Math.max(5, Math.min(60, settings.announcementSpeed)) * 2
       });
     }
   }
