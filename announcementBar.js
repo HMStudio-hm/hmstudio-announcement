@@ -1,4 +1,4 @@
-// HMStudio Announcement Bar v1.1.9
+// HMStudio Announcement Bar v1.2.0
 // Created by HMStudio
 // https://github.com/your-username/hmstudio-announcement
 
@@ -69,7 +69,7 @@
       left: 0;
     `;
 
-    // Create a single text element to measure width
+    // Create initial text elements
     const textSpan = document.createElement('span');
     textSpan.textContent = settings.announcementText;
     textSpan.style.cssText = `
@@ -78,14 +78,14 @@
     `;
     tickerContent.appendChild(textSpan);
 
-    // Add content to bar to measure
+    // Add content to bar for measurement
     bar.appendChild(tickerContent);
     document.body.appendChild(bar);
 
-    // Measure text width
+    // Measure text and viewport
     const textWidth = textSpan.offsetWidth;
     const viewportWidth = window.innerWidth;
-    const copiesNeeded = Math.ceil((viewportWidth * 2) / textWidth) + 2;
+    const copiesNeeded = Math.ceil((viewportWidth * 3) / textWidth) + 2; // Increased copies for smoother scroll
 
     // Add necessary copies
     for (let i = 1; i < copiesNeeded; i++) {
@@ -103,10 +103,18 @@
       if (!isPaused) {
         position += speed;
         
-        const maxPosition = textWidth; // When to reset position
+        // Calculate the point where text should reset
+        // This should be when the first text element has moved completely off screen
+        const resetPoint = textWidth;
         
-        if (position >= maxPosition) {
+        if (position >= resetPoint) {
+          // Reset to create endless scroll effect
           position = 0;
+          
+          // Optionally move the first text element to the end for smoother transition
+          const firstText = tickerContent.children[0];
+          tickerContent.appendChild(firstText.cloneNode(true));
+          tickerContent.removeChild(firstText);
         }
 
         tickerContent.style.transform = `translateX(${position}px)`;
@@ -116,6 +124,9 @@
 
     // Start animation with a slight delay to ensure proper initialization
     setTimeout(() => {
+      // Set initial position to ensure text starts from left
+      position = 0;
+      tickerContent.style.transform = `translateX(${position}px)`;
       animate();
     }, 100);
 
@@ -144,6 +155,11 @@
     // Handle visibility change
     document.addEventListener('visibilitychange', () => {
       isPaused = document.hidden;
+      if (!document.hidden) {
+        // Reset position when becoming visible again
+        position = 0;
+        tickerContent.style.transform = `translateX(${position}px)`;
+      }
     });
 
     // Cleanup on page unload
@@ -164,6 +180,22 @@
     observer.observe(document.body, {
       childList: true,
       subtree: true
+    });
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      const newViewportWidth = window.innerWidth;
+      const newCopiesNeeded = Math.ceil((newViewportWidth * 3) / textWidth) + 2;
+
+      // Add more copies if needed
+      while (tickerContent.children.length < newCopiesNeeded) {
+        const clone = textSpan.cloneNode(true);
+        tickerContent.appendChild(clone);
+      }
+
+      // Reset position to maintain smooth scroll
+      position = 0;
+      tickerContent.style.transform = `translateX(${position}px)`;
     });
   }
 
