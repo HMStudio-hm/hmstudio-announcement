@@ -1,4 +1,4 @@
-// HMStudio Announcement Bar v1.0.9
+// HMStudio Announcement Bar v1.2.0
 // Created by HMStudio
 // https://github.com/your-username/hmstudio-announcement
 
@@ -75,21 +75,19 @@
       height: 100%;
       align-items: center;
       position: absolute;
-      right: 0;
-      top: 0;
       white-space: nowrap;
       will-change: transform;
-      animation: hmstudio-scroll ${settings.announcementSpeed}s linear infinite;
+      animation: hmstudio-scroll var(--scroll-time) linear infinite;
+      transform: translateX(calc(50% - var(--text-width) / 2));
     `;
 
     // Create multiple copies of the text for seamless scrolling
-    // Adding 4 copies ensures smooth continuous flow
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 6; i++) {
       const textSpan = document.createElement('span');
       textSpan.textContent = settings.announcementText;
       textSpan.style.cssText = `
         display: inline-block;
-        padding: 0 2rem;
+        padding: 0 3rem;
       `;
       marqueeInner.appendChild(textSpan);
     }
@@ -99,10 +97,10 @@
     style.textContent = `
       @keyframes hmstudio-scroll {
         0% {
-          transform: translate3d(0, 0, 0);
+          transform: translateX(calc(50% - var(--text-width) / 2));
         }
         100% {
-          transform: translate3d(25%, 0, 0);
+          transform: translateX(calc(-150% - var(--text-width) / 2));
         }
       }
       .hmstudio-marquee-wrapper:hover .hmstudio-marquee-inner {
@@ -126,28 +124,16 @@
     // Calculate text width and adjust animation
     function calculateAndAdjustAnimation() {
       const singleTextWidth = marqueeInner.children[0].offsetWidth;
-      const totalWidth = singleTextWidth * 4; // Total width of all text copies
+      const totalWidth = singleTextWidth * 6;
       
-      // Adjust the inner container
-      marqueeInner.style.width = `${totalWidth}px`;
+      // Set CSS variables for the animation
+      marqueeInner.style.setProperty('--text-width', `${singleTextWidth}px`);
+      marqueeInner.style.setProperty('--scroll-time', `${settings.announcementSpeed}s`);
 
-      // Recreate animation with calculated values
-      const newStyle = document.createElement('style');
-      newStyle.textContent = `
-        @keyframes hmstudio-scroll {
-          0% {
-            transform: translate3d(-75%, 0, 0);
-          }
-          100% {
-            transform: translate3d(0%, 0, 0);
-          }
-        }
-      `;
-      
-      // Replace old style with new one
-      if (style.parentNode) {
-        style.parentNode.replaceChild(newStyle, style);
-      }
+      // Reset animation to apply new calculations
+      marqueeInner.style.animation = 'none';
+      void marqueeInner.offsetWidth; // Force reflow
+      marqueeInner.style.animation = `hmstudio-scroll ${settings.announcementSpeed}s linear infinite`;
     }
 
     // Initial calculation with a slight delay to ensure accurate measurements
@@ -156,7 +142,7 @@
     // Recalculate on resize
     window.addEventListener('resize', calculateAndAdjustAnimation);
 
-    // Optional: Recalculate on font load to handle custom fonts
+    // Handle font loading
     if (document.fonts) {
       document.fonts.ready.then(calculateAndAdjustAnimation);
     }
