@@ -1,4 +1,4 @@
-// HMStudio Announcement Bar v1.1.4
+// HMStudio Announcement Bar v1.1.5
 // Created by HMStudio
 // https://github.com/your-username/hmstudio-announcement
 
@@ -61,101 +61,88 @@
     const marqueeWrapper = document.createElement('div');
     marqueeWrapper.className = 'hmstudio-marquee-wrapper';
     marqueeWrapper.style.cssText = `
-      position: relative;
       width: 100%;
       height: 100%;
       overflow: hidden;
+      position: relative;
     `;
 
-    // Create temporary span to measure text width
-    const measureSpan = document.createElement('span');
-    measureSpan.style.cssText = `
-      position: absolute;
-      visibility: hidden;
-      white-space: nowrap;
-      padding: 0 3rem;
-    `;
-    measureSpan.textContent = settings.announcementText;
-    document.body.appendChild(measureSpan);
-    
-    // Measure text width
-    const textWidth = measureSpan.offsetWidth;
-    document.body.removeChild(measureSpan);
-
-    // Calculate the viewport width and required number of copies
-    const viewportWidth = window.innerWidth;
-    const copiesNeeded = Math.ceil((viewportWidth * 2) / textWidth) + 4;
-
-    // Create inner container for animation
-    const marqueeInner = document.createElement('div');
-    marqueeInner.className = 'hmstudio-marquee-inner';
-    marqueeInner.style.cssText = `
-      display: flex;
-      height: 100%;
-      align-items: center;
-      position: absolute;
-      left: 0;
-      top: 0;
-      white-space: nowrap;
-      will-change: transform;
-    `;
-
-    // Create two groups of text with different animation delays
-    const group1 = document.createElement('div');
-    group1.className = 'marquee-group';
-    group1.style.cssText = `
-      display: flex;
-      animation: hmstudio-scroll ${settings.announcementSpeed}s linear infinite;
-    `;
-
-    const group2 = document.createElement('div');
-    group2.className = 'marquee-group';
-    group2.style.cssText = `
-      display: flex;
-      animation: hmstudio-scroll ${settings.announcementSpeed}s linear infinite;
-      animation-delay: ${settings.announcementSpeed / 2}s;
-    `;
-
-    // Add texts to each group
-    for (let i = 0; i < Math.ceil(copiesNeeded / 2); i++) {
-      const span1 = document.createElement('span');
-      span1.textContent = settings.announcementText;
-      span1.style.cssText = `
+    // Create two inner containers for seamless animation
+    const createInnerContainer = () => {
+      const container = document.createElement('div');
+      container.className = 'hmstudio-marquee-content';
+      container.style.cssText = `
+        height: 100%;
+        display: flex;
+        align-items: center;
+        position: absolute;
+        left: 0;
+        top: 0;
+        white-space: nowrap;
+        will-change: transform;
+      `;
+      
+      // Add text span
+      const textSpan = document.createElement('span');
+      textSpan.textContent = settings.announcementText;
+      textSpan.style.cssText = `
         display: inline-block;
         padding: 0 3rem;
       `;
-      group1.appendChild(span1);
+      container.appendChild(textSpan);
+      
+      return container;
+    };
 
-      const span2 = document.createElement('span');
-      span2.textContent = settings.announcementText;
-      span2.style.cssText = `
-        display: inline-block;
-        padding: 0 3rem;
-      `;
-      group2.appendChild(span2);
-    }
+    // Create primary and clone containers
+    const primaryContainer = createInnerContainer();
+    const cloneContainer = createInnerContainer();
 
     // Add animation keyframes
     const style = document.createElement('style');
     style.textContent = `
-      @keyframes hmstudio-scroll {
+      @keyframes hmstudio-ticker {
         0% {
           transform: translateX(-100%);
         }
         100% {
-          transform: translateX(100vw);
+          transform: translateX(100%);
         }
       }
-      .hmstudio-marquee-wrapper:hover .marquee-group {
-        animation-play-state: paused;
+      .hmstudio-marquee-wrapper:hover .hmstudio-marquee-content {
+        animation-play-state: paused !important;
       }
     `;
     document.head.appendChild(style);
 
+    // Function to start animations
+    function startAnimation() {
+      const distance = primaryContainer.offsetWidth;
+      const duration = settings.announcementSpeed;
+      const gap = distance / 2; // Gap between texts
+
+      primaryContainer.style.animation = `hmstudio-ticker ${duration}s linear infinite`;
+      cloneContainer.style.animation = `hmstudio-ticker ${duration}s linear infinite`;
+      
+      // Position and animate containers
+      const setInitialPositions = () => {
+        // Calculate positions to ensure smooth transition
+        const startPos = -distance;
+        primaryContainer.style.transform = `translateX(${startPos}px)`;
+        cloneContainer.style.transform = `translateX(${startPos + gap}px)`;
+        
+        // Start animations with a slight delay between them
+        primaryContainer.style.animation = `hmstudio-ticker ${duration}s linear infinite`;
+        cloneContainer.style.animation = `hmstudio-ticker ${duration}s linear infinite`;
+        cloneContainer.style.animationDelay = `${duration / 2}s`;
+      };
+
+      setInitialPositions();
+    }
+
     // Assemble the components
-    marqueeInner.appendChild(group1);
-    marqueeInner.appendChild(group2);
-    marqueeWrapper.appendChild(marqueeInner);
+    marqueeWrapper.appendChild(primaryContainer);
+    marqueeWrapper.appendChild(cloneContainer);
     bar.appendChild(marqueeWrapper);
 
     // Insert at the top of the page
@@ -166,44 +153,19 @@
       document.body.insertBefore(bar, document.body.firstChild);
     }
 
-    // Function to handle window resize
-    function handleResize() {
-      const newViewportWidth = window.innerWidth;
-      const newCopiesNeeded = Math.ceil((newViewportWidth * 2) / textWidth) + 4;
-      
-      // Update number of copies in each group
-      [group1, group2].forEach(group => {
-        const currentCopies = group.children.length;
-        const neededCopies = Math.ceil(newCopiesNeeded / 2);
-        
-        if (neededCopies > currentCopies) {
-          for (let i = currentCopies; i < neededCopies; i++) {
-            const span = document.createElement('span');
-            span.textContent = settings.announcementText;
-            span.style.cssText = `
-              display: inline-block;
-              padding: 0 3rem;
-            `;
-            group.appendChild(span);
-          }
-        }
-      });
+    // Start animation after a brief delay to ensure rendering
+    setTimeout(startAnimation, 100);
 
-      // Reset animations
-      [group1, group2].forEach(group => {
-        group.style.animation = 'none';
-        void group.offsetWidth;
-        group.style.animation = `hmstudio-scroll ${settings.announcementSpeed}s linear infinite`;
-      });
-      group2.style.animationDelay = `${settings.announcementSpeed / 2}s`;
-    }
-
-    // Add resize listener
-    window.addEventListener('resize', handleResize);
+    // Handle resize
+    window.addEventListener('resize', () => {
+      startAnimation();
+    });
 
     // Handle font loading
     if (document.fonts) {
-      document.fonts.ready.then(handleResize);
+      document.fonts.ready.then(() => {
+        startAnimation();
+      });
     }
   }
 
