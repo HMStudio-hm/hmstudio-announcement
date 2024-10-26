@@ -1,4 +1,4 @@
-// HMStudio Announcement Bar v1.0.5
+// HMStudio Announcement Bar v1.0.6
 // Created by HMStudio
 // https://github.com/your-username/hmstudio-announcement
 
@@ -68,6 +68,8 @@
       height: 100%;
       overflow: hidden;
       position: relative;
+      align-items: center;
+      font-size: 15px;
     `;
 
     // Create ticker content
@@ -79,9 +81,9 @@
       white-space: nowrap;
       will-change: transform;
       position: absolute;
-      left: 0;
+      right: 0;
       animation: hmstudio-ticker ${settings.announcementSpeed}s linear infinite;
-      padding-left: 100%;
+      padding-right: 100%;
     `;
 
     // Calculate how many copies we need
@@ -104,10 +106,10 @@
     style.textContent = `
       @keyframes hmstudio-ticker {
         0% {
-          transform: translate3d(0, 0, 0);
+          transform: translate3d(-100%, 0, 0);
         }
         100% {
-          transform: translate3d(-100%, 0, 0);
+          transform: translate3d(100%, 0, 0);
         }
       }
       .hmstudio-ticker-container:hover .hmstudio-ticker {
