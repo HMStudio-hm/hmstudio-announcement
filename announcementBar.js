@@ -1,4 +1,4 @@
-// HMStudio Announcement Bar v1.1.6
+// HMStudio Announcement Bar v1.1.7
 // Created by HMStudio
 // https://github.com/your-username/hmstudio-announcement
 
@@ -57,76 +57,36 @@
       z-index: 999999;
     `;
 
-    // Create marquee wrapper
-    const marqueeWrapper = document.createElement('div');
-    marqueeWrapper.className = 'hmstudio-marquee-wrapper';
-    marqueeWrapper.style.cssText = `
-      position: relative;
-      width: 100%;
+    // Create content container
+    const tickerContent = document.createElement('div');
+    tickerContent.id = 'tickerContent';
+    tickerContent.style.cssText = `
+      position: absolute;
+      white-space: nowrap;
       height: 100%;
-      overflow: hidden;
-    `;
-
-    // Create two inner containers for seamless animation
-    const marqueeTrack = document.createElement('div');
-    marqueeTrack.className = 'hmstudio-marquee-track';
-    marqueeTrack.style.cssText = `
       display: flex;
-      height: 100%;
-      width: max-content;
-      position: relative;
+      align-items: center;
+      transform: translateX(0);
     `;
 
-    // Create two separate containers for continuous movement
-    for (let i = 0; i < 2; i++) {
-      const marqueeContent = document.createElement('div');
-      marqueeContent.className = 'hmstudio-marquee-content';
-      marqueeContent.style.cssText = `
-        display: flex;
-        height: 100%;
-        align-items: center;
-        animation: hmstudio-scroll ${settings.announcementSpeed}s linear infinite;
-        animation-delay: ${i * (settings.announcementSpeed / 2)}s;
-      `;
+    // Add multiple copies of text
+    const textContent = document.createElement('span');
+    textContent.textContent = settings.announcementText;
+    textContent.style.cssText = `
+      display: inline-block;
+      padding: 0 3rem;
+    `;
 
-      // Calculate number of copies needed based on viewport width
-      const viewportWidth = window.innerWidth;
-      const copiesNeeded = Math.ceil(viewportWidth / 100) + 2; // Adjust divisor as needed
-
-      // Add text copies to each container
-      for (let j = 0; j < copiesNeeded; j++) {
-        const textSpan = document.createElement('span');
-        textSpan.textContent = settings.announcementText;
-        textSpan.style.cssText = `
-          display: inline-block;
-          padding: 0 3rem;
-        `;
-        marqueeContent.appendChild(textSpan);
-      }
-
-      marqueeTrack.appendChild(marqueeContent);
+    // Calculate number of copies needed based on viewport width
+    const numCopies = Math.ceil((window.innerWidth * 2) / textContent.offsetWidth) + 2;
+    
+    for (let i = 0; i < numCopies; i++) {
+      const textCopy = textContent.cloneNode(true);
+      tickerContent.appendChild(textCopy);
     }
 
-    // Add animation keyframes
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes hmstudio-scroll {
-        0% {
-          transform: translateX(-100%);
-        }
-        100% {
-          transform: translateX(100%);
-        }
-      }
-      .hmstudio-marquee-wrapper:hover .hmstudio-marquee-content {
-        animation-play-state: paused;
-      }
-    `;
-    document.head.appendChild(style);
-
-    // Assemble the components
-    marqueeWrapper.appendChild(marqueeTrack);
-    bar.appendChild(marqueeWrapper);
+    // Add content to bar
+    bar.appendChild(tickerContent);
 
     // Insert at the top of the page
     const targetLocation = document.querySelector('.header');
@@ -136,38 +96,46 @@
       document.body.insertBefore(bar, document.body.firstChild);
     }
 
-    // Function to handle window resize
-    function handleResize() {
-      const viewportWidth = window.innerWidth;
-      const copiesNeeded = Math.ceil(viewportWidth / 100) + 2;
+    // Animation function
+    let translateX = 0;
+    const speed = (70 - settings.announcementSpeed) * 0.5; // Convert speed setting to actual speed
+    const contentWidth = tickerContent.scrollWidth;
 
-      // Update copies for each container
-      document.querySelectorAll('.hmstudio-marquee-content').forEach(container => {
-        // Add more copies if needed
-        while (container.children.length < copiesNeeded) {
-          const textSpan = document.createElement('span');
-          textSpan.textContent = settings.announcementText;
-          textSpan.style.cssText = `
-            display: inline-block;
-            padding: 0 3rem;
-          `;
-          container.appendChild(textSpan);
-        }
-      });
+    function animate() {
+      translateX += speed;
+      
+      // Reset translation when it exceeds content width
+      if (translateX >= contentWidth / numCopies) {
+        translateX = 0;
+      }
 
-      // Reset animations
-      document.querySelectorAll('.hmstudio-marquee-content').forEach((content, i) => {
-        content.style.animation = 'none';
-        void content.offsetWidth;
-        content.style.animation = `hmstudio-scroll ${settings.announcementSpeed}s linear infinite`;
-        content.style.animationDelay = `${i * (settings.announcementSpeed / 2)}s`;
-      });
+      tickerContent.style.transform = `translateX(${translateX}px)`;
+      requestAnimationFrame(animate);
     }
 
-    // Initial setup
-    setTimeout(handleResize, 100);
+    // Start animation
+    requestAnimationFrame(animate);
 
-    // Add resize listener
+    // Pause on hover
+    bar.addEventListener('mouseenter', () => {
+      tickerContent.style.animationPlayState = 'paused';
+    });
+
+    bar.addEventListener('mouseleave', () => {
+      tickerContent.style.animationPlayState = 'running';
+    });
+
+    // Handle window resize
+    function handleResize() {
+      const newNumCopies = Math.ceil((window.innerWidth * 2) / textContent.offsetWidth) + 2;
+      
+      // Add more copies if needed
+      while (tickerContent.children.length < newNumCopies) {
+        const textCopy = textContent.cloneNode(true);
+        tickerContent.appendChild(textCopy);
+      }
+    }
+
     window.addEventListener('resize', handleResize);
 
     // Handle font loading
@@ -182,7 +150,8 @@
     if (settings && settings.announcementEnabled) {
       createAnnouncementBar({
         ...settings,
-        announcementSpeed: Math.max(5, Math.min(60, settings.announcementSpeed)) * 2
+        // Keep the original speed value (5-60) and convert it in the animation
+        announcementSpeed: Math.max(5, Math.min(60, settings.announcementSpeed))
       });
     }
   }
