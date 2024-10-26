@@ -1,4 +1,4 @@
-// HMStudio Announcement Bar v1.2.0
+// HMStudio Announcement Bar v1.2.1
 // Created by HMStudio
 // https://github.com/your-username/hmstudio-announcement
 
@@ -66,69 +66,81 @@
       height: 100%;
       display: flex;
       align-items: center;
-      left: 0;
+      will-change: transform;
     `;
 
-    // Create initial text elements
-    const textSpan = document.createElement('span');
-    textSpan.textContent = settings.announcementText;
-    textSpan.style.cssText = `
+    // Calculate number of copies needed (initial)
+    const tempSpan = document.createElement('span');
+    tempSpan.textContent = settings.announcementText;
+    tempSpan.style.cssText = `
       display: inline-block;
       padding: 0 3rem;
+      visibility: hidden;
+      position: absolute;
     `;
-    tickerContent.appendChild(textSpan);
+    document.body.appendChild(tempSpan);
+    const textWidth = tempSpan.offsetWidth;
+    document.body.removeChild(tempSpan);
 
-    // Add content to bar for measurement
-    bar.appendChild(tickerContent);
-    document.body.appendChild(bar);
-
-    // Measure text and viewport
-    const textWidth = textSpan.offsetWidth;
+    // Create enough copies to fill twice the viewport width
     const viewportWidth = window.innerWidth;
-    const copiesNeeded = Math.ceil((viewportWidth * 3) / textWidth) + 2; // Increased copies for smoother scroll
+    const copiesNeeded = Math.ceil((viewportWidth * 3) / textWidth) + 2;
 
-    // Add necessary copies
-    for (let i = 1; i < copiesNeeded; i++) {
-      const clone = textSpan.cloneNode(true);
-      tickerContent.appendChild(clone);
+    for (let i = 0; i < copiesNeeded; i++) {
+      const textSpan = document.createElement('span');
+      textSpan.textContent = settings.announcementText;
+      textSpan.style.cssText = `
+        display: inline-block;
+        padding: 0 3rem;
+      `;
+      tickerContent.appendChild(textSpan);
+    }
+
+    // Add content to bar
+    bar.appendChild(tickerContent);
+
+    // Insert at the top of the page
+    const targetLocation = document.querySelector('.header');
+    if (targetLocation) {
+      targetLocation.insertBefore(bar, targetLocation.firstChild);
+    } else {
+      document.body.insertBefore(bar, document.body.firstChild);
     }
 
     // Animation variables
+    let currentPosition = 0;
+    let lastTimestamp = 0;
+    const pixelsPerSecond = (70 - settings.announcementSpeed) * 20; // Adjust speed
     let animationId;
-    let position = 0;
     let isPaused = false;
-    const speed = (70 - settings.announcementSpeed) * 0.5; // Adjust speed based on settings
 
-    function animate() {
+    function updateAnimation(timestamp) {
+      if (!lastTimestamp) lastTimestamp = timestamp;
+      const deltaTime = timestamp - lastTimestamp;
+      lastTimestamp = timestamp;
+
       if (!isPaused) {
-        position += speed;
-        
-        // Calculate the point where text should reset
-        // This should be when the first text element has moved completely off screen
-        const resetPoint = textWidth;
-        
-        if (position >= resetPoint) {
-          // Reset to create endless scroll effect
-          position = 0;
-          
-          // Optionally move the first text element to the end for smoother transition
-          const firstText = tickerContent.children[0];
-          tickerContent.appendChild(firstText.cloneNode(true));
-          tickerContent.removeChild(firstText);
+        // Calculate movement based on time
+        const movement = (pixelsPerSecond * deltaTime) / 1000;
+        currentPosition += movement;
+
+        // Reset position when necessary
+        if (currentPosition >= textWidth) {
+          currentPosition = 0;
+          // Move first item to end for smooth transition
+          const firstItem = tickerContent.children[0];
+          tickerContent.appendChild(firstItem.cloneNode(true));
+          tickerContent.removeChild(firstItem);
         }
 
-        tickerContent.style.transform = `translateX(${position}px)`;
+        tickerContent.style.transform = `translateX(${currentPosition}px)`;
       }
-      animationId = requestAnimationFrame(animate);
+
+      animationId = requestAnimationFrame(updateAnimation);
     }
 
-    // Start animation with a slight delay to ensure proper initialization
-    setTimeout(() => {
-      // Set initial position to ensure text starts from left
-      position = 0;
-      tickerContent.style.transform = `translateX(${position}px)`;
-      animate();
-    }, 100);
+    // Start animation
+    animationId = requestAnimationFrame(updateAnimation);
 
     // Add hover pause functionality
     bar.addEventListener('mouseenter', () => {
@@ -137,6 +149,7 @@
 
     bar.addEventListener('mouseleave', () => {
       isPaused = false;
+      lastTimestamp = 0; // Reset timestamp for smooth resume
     });
 
     // Handle cleanup
@@ -146,40 +159,14 @@
       }
     }
 
-    // Move bar to final position
-    const targetLocation = document.querySelector('.header');
-    if (targetLocation) {
-      targetLocation.insertBefore(bar, targetLocation.firstChild);
-    }
-
     // Handle visibility change
     document.addEventListener('visibilitychange', () => {
-      isPaused = document.hidden;
-      if (!document.hidden) {
-        // Reset position when becoming visible again
-        position = 0;
-        tickerContent.style.transform = `translateX(${position}px)`;
+      if (document.hidden) {
+        isPaused = true;
+      } else {
+        isPaused = false;
+        lastTimestamp = 0; // Reset timestamp for smooth resume
       }
-    });
-
-    // Cleanup on page unload
-    window.addEventListener('unload', cleanup);
-
-    // Observe bar removal
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        mutation.removedNodes.forEach((node) => {
-          if (node === bar) {
-            cleanup();
-            observer.disconnect();
-          }
-        });
-      });
-    });
-
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true
     });
 
     // Handle window resize
@@ -187,16 +174,15 @@
       const newViewportWidth = window.innerWidth;
       const newCopiesNeeded = Math.ceil((newViewportWidth * 3) / textWidth) + 2;
 
-      // Add more copies if needed
+      // Adjust number of copies if needed
       while (tickerContent.children.length < newCopiesNeeded) {
-        const clone = textSpan.cloneNode(true);
+        const clone = tickerContent.children[0].cloneNode(true);
         tickerContent.appendChild(clone);
       }
-
-      // Reset position to maintain smooth scroll
-      position = 0;
-      tickerContent.style.transform = `translateX(${position}px)`;
     });
+
+    // Cleanup on page unload
+    window.addEventListener('unload', cleanup);
   }
 
   // Initialize announcement bar
