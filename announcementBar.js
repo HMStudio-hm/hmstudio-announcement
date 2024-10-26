@@ -1,4 +1,4 @@
-// HMStudio Announcement Bar v1.1.1
+// HMStudio Announcement Bar v1.1.2
 // Created by HMStudio
 // https://github.com/your-username/hmstudio-announcement
 
@@ -67,6 +67,25 @@
       overflow: hidden;
     `;
 
+    // Create temporary span to measure text width
+    const measureSpan = document.createElement('span');
+    measureSpan.style.cssText = `
+      position: absolute;
+      visibility: hidden;
+      white-space: nowrap;
+      padding: 0 3rem;
+    `;
+    measureSpan.textContent = settings.announcementText;
+    document.body.appendChild(measureSpan);
+    
+    // Measure text width
+    const textWidth = measureSpan.offsetWidth;
+    document.body.removeChild(measureSpan);
+
+    // Calculate number of copies needed based on viewport width
+    const viewportWidth = window.innerWidth;
+    const copiesNeeded = Math.ceil((viewportWidth * 3) / textWidth) + 2;
+
     // Create inner container for animation
     const marqueeInner = document.createElement('div');
     marqueeInner.className = 'hmstudio-marquee-inner';
@@ -75,14 +94,16 @@
       height: 100%;
       align-items: center;
       position: absolute;
+      left: 0;
+      top: 0;
       white-space: nowrap;
       will-change: transform;
-      animation: hmstudio-scroll var(--scroll-time) linear infinite;
-      transform: translateX(calc(50% - var(--text-width) / 2));
+      transform: translateX(-${textWidth}px);
+      animation: hmstudio-scroll ${settings.announcementSpeed}s linear infinite;
     `;
 
-    // Create multiple copies of the text for seamless scrolling
-    for (let i = 0; i < 6; i++) {
+    // Create calculated number of text copies
+    for (let i = 0; i < copiesNeeded; i++) {
       const textSpan = document.createElement('span');
       textSpan.textContent = settings.announcementText;
       textSpan.style.cssText = `
@@ -97,10 +118,10 @@
     style.textContent = `
       @keyframes hmstudio-scroll {
         0% {
-          transform: translateX(calc(50% - var(--text-width) / 2));
+          transform: translateX(-${textWidth}px);
         }
         100% {
-          transform: translateX(calc(-150% - var(--text-width) / 2));
+          transform: translateX(${textWidth * 2}px);
         }
       }
       .hmstudio-marquee-wrapper:hover .hmstudio-marquee-inner {
@@ -121,30 +142,55 @@
       document.body.insertBefore(bar, document.body.firstChild);
     }
 
-    // Calculate text width and adjust animation
-    function calculateAndAdjustAnimation() {
-      const singleTextWidth = marqueeInner.children[0].offsetWidth;
-      const totalWidth = singleTextWidth * 6;
-      
-      // Set CSS variables for the animation
-      marqueeInner.style.setProperty('--text-width', `${singleTextWidth}px`);
-      marqueeInner.style.setProperty('--scroll-time', `${settings.announcementSpeed}s`);
+    // Function to handle window resize
+    function handleResize() {
+      // Recalculate copies needed based on new viewport width
+      const newViewportWidth = window.innerWidth;
+      const newCopiesNeeded = Math.ceil((newViewportWidth * 3) / textWidth) + 2;
 
-      // Reset animation to apply new calculations
+      // Adjust number of copies if needed
+      const currentCopies = marqueeInner.children.length;
+      if (newCopiesNeeded > currentCopies) {
+        for (let i = currentCopies; i < newCopiesNeeded; i++) {
+          const textSpan = document.createElement('span');
+          textSpan.textContent = settings.announcementText;
+          textSpan.style.cssText = `
+            display: inline-block;
+            padding: 0 3rem;
+          `;
+          marqueeInner.appendChild(textSpan);
+        }
+      }
+
+      // Update animation keyframes
+      const newStyle = document.createElement('style');
+      newStyle.textContent = `
+        @keyframes hmstudio-scroll {
+          0% {
+            transform: translateX(-${textWidth}px);
+          }
+          100% {
+            transform: translateX(${textWidth * 2}px);
+          }
+        }
+      `;
+      
+      if (style.parentNode) {
+        style.parentNode.replaceChild(newStyle, style);
+      }
+
+      // Reset animation
       marqueeInner.style.animation = 'none';
       void marqueeInner.offsetWidth; // Force reflow
       marqueeInner.style.animation = `hmstudio-scroll ${settings.announcementSpeed}s linear infinite`;
     }
 
-    // Initial calculation with a slight delay to ensure accurate measurements
-    setTimeout(calculateAndAdjustAnimation, 100);
-
-    // Recalculate on resize
-    window.addEventListener('resize', calculateAndAdjustAnimation);
+    // Add resize listener
+    window.addEventListener('resize', handleResize);
 
     // Handle font loading
     if (document.fonts) {
-      document.fonts.ready.then(calculateAndAdjustAnimation);
+      document.fonts.ready.then(handleResize);
     }
   }
 
@@ -154,7 +200,7 @@
     if (settings && settings.announcementEnabled) {
       createAnnouncementBar({
         ...settings,
-        announcementSpeed: Math.max(5, Math.min(60, settings.announcementSpeed)) * 2
+        announcementSpeed: Math.max(5, Math.min(60, settings.announcementSpeed))
       });
     }
   }
