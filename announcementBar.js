@@ -1,4 +1,4 @@
-// HMStudio Announcement Bar v1.0.7
+// HMStudio Announcement Bar v1.0.8
 // Created by HMStudio
 // https://github.com/your-username/hmstudio-announcement
 
@@ -57,50 +57,69 @@
       z-index: 999999;
     `;
 
-    // Create marquee container
-    const marqueeContainer = document.createElement('div');
-    marqueeContainer.className = 'hmstudio-marquee-container';
-    marqueeContainer.style.cssText = `
+    // Create marquee wrapper
+    const marqueeWrapper = document.createElement('div');
+    marqueeWrapper.className = 'hmstudio-marquee-wrapper';
+    marqueeWrapper.style.cssText = `
+      position: relative;
       width: 100%;
       height: 100%;
-      position: relative;
       overflow: hidden;
     `;
 
-    // Create text element
-    const textElement = document.createElement('div');
-    textElement.className = 'hmstudio-marquee-text';
-    textElement.textContent = settings.announcementText;
-    textElement.style.cssText = `
-      position: absolute;
-      white-space: nowrap;
-      height: 100%;
+    // Create inner container for animation
+    const marqueeInner = document.createElement('div');
+    marqueeInner.className = 'hmstudio-marquee-inner';
+    marqueeInner.style.cssText = `
       display: flex;
+      height: 100%;
       align-items: center;
-      animation: hmstudio-marquee ${settings.announcementSpeed}s linear infinite;
-      padding: 0 20px;
+      position: absolute;
+      left: 0;
+      top: 0;
+      white-space: nowrap;
+      will-change: transform;
+      animation: hmstudio-scroll ${settings.announcementSpeed}s linear infinite;
     `;
+
+    // Create two spans to ensure continuous flow
+    const textSpan1 = document.createElement('span');
+    textSpan1.textContent = settings.announcementText;
+    textSpan1.style.cssText = `
+      display: inline-block;
+      padding: 0 2rem;
+    `;
+
+    const textSpan2 = document.createElement('span');
+    textSpan2.textContent = settings.announcementText;
+    textSpan2.style.cssText = `
+      display: inline-block;
+      padding: 0 2rem;
+    `;
+
+    marqueeInner.appendChild(textSpan1);
+    marqueeInner.appendChild(textSpan2);
 
     // Add animation keyframes
     const style = document.createElement('style');
     style.textContent = `
-      @keyframes hmstudio-marquee {
+      @keyframes hmstudio-scroll {
         from {
-          transform: translateX(-100%);
+          transform: translate3d(0, 0, 0);
         }
         to {
-          transform: translateX(100vw);
+          transform: translate3d(${-50}%, 0, 0);
         }
       }
-      .hmstudio-marquee-container:hover .hmstudio-marquee-text {
+      .hmstudio-marquee-wrapper:hover .hmstudio-marquee-inner {
         animation-play-state: paused;
       }
     `;
     document.head.appendChild(style);
 
     // Assemble the components
-    marqueeContainer.appendChild(textElement);
-    bar.appendChild(marqueeContainer);
+    marqueeWrapper.appendChild(marqueeInner);
+    bar.appendChild(marqueeWrapper);
 
     // Insert at the top of the page
     const targetLocation = document.querySelector('.header');
@@ -110,18 +129,36 @@
       document.body.insertBefore(bar, document.body.firstChild);
     }
 
-    // Function to handle window resize
-    function handleResize() {
-      // Restart animation to adjust to new window size
-      textElement.style.animation = 'none';
-      // Force reflow
-      void textElement.offsetWidth;
-      // Restart animation
-      textElement.style.animation = `hmstudio-marquee ${settings.announcementSpeed}s linear infinite`;
+    // Calculate text width and adjust animation
+    function calculateAndAdjustAnimation() {
+      const textWidth = textSpan1.offsetWidth;
+      const windowWidth = window.innerWidth;
+      const totalDistance = textWidth * 2; // Distance to move is 2x text width
+
+      // Recreate animation with calculated values
+      const newStyle = document.createElement('style');
+      newStyle.textContent = `
+        @keyframes hmstudio-scroll {
+          0% {
+            transform: translate3d(0, 0, 0);
+          }
+          100% {
+            transform: translate3d(-50%, 0, 0);
+          }
+        }
+      `;
+      
+      // Replace old style with new one
+      if (style.parentNode) {
+        style.parentNode.replaceChild(newStyle, style);
+      }
     }
 
-    // Add resize listener
-    window.addEventListener('resize', handleResize);
+    // Initial calculation
+    setTimeout(calculateAndAdjustAnimation, 100);
+
+    // Recalculate on resize
+    window.addEventListener('resize', calculateAndAdjustAnimation);
   }
 
   // Initialize announcement bar
@@ -130,7 +167,7 @@
     if (settings && settings.announcementEnabled) {
       createAnnouncementBar({
         ...settings,
-        announcementSpeed: Math.max(5, Math.min(60, settings.announcementSpeed)) * 0.75 // Adjust timing
+        announcementSpeed: Math.max(5, Math.min(60, settings.announcementSpeed))
       });
     }
   }
