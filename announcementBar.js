@@ -1,4 +1,4 @@
-// HMStudio Announcement Bar v1.1.2
+// HMStudio Announcement Bar v1.1.3
 // Created by HMStudio
 // https://github.com/your-username/hmstudio-announcement
 
@@ -84,7 +84,7 @@
 
     // Calculate number of copies needed based on viewport width
     const viewportWidth = window.innerWidth;
-    const copiesNeeded = Math.ceil((viewportWidth * 3) / textWidth) + 2;
+    const copiesNeeded = Math.ceil((viewportWidth * 3) / textWidth) + 3; // Added extra copy
 
     // Create inner container for animation
     const marqueeInner = document.createElement('div');
@@ -98,7 +98,7 @@
       top: 0;
       white-space: nowrap;
       will-change: transform;
-      transform: translateX(-${textWidth}px);
+      transform: translateX(-${textWidth * 1.5}px);
       animation: hmstudio-scroll ${settings.announcementSpeed}s linear infinite;
     `;
 
@@ -118,10 +118,10 @@
     style.textContent = `
       @keyframes hmstudio-scroll {
         0% {
-          transform: translateX(-${textWidth}px);
+          transform: translateX(-${textWidth * 1.5}px);
         }
         100% {
-          transform: translateX(${textWidth * 2}px);
+          transform: translateX(${textWidth * 2.5}px);
         }
       }
       .hmstudio-marquee-wrapper:hover .hmstudio-marquee-inner {
@@ -146,7 +146,7 @@
     function handleResize() {
       // Recalculate copies needed based on new viewport width
       const newViewportWidth = window.innerWidth;
-      const newCopiesNeeded = Math.ceil((newViewportWidth * 3) / textWidth) + 2;
+      const newCopiesNeeded = Math.ceil((newViewportWidth * 3) / textWidth) + 3;
 
       // Adjust number of copies if needed
       const currentCopies = marqueeInner.children.length;
@@ -167,10 +167,10 @@
       newStyle.textContent = `
         @keyframes hmstudio-scroll {
           0% {
-            transform: translateX(-${textWidth}px);
+            transform: translateX(-${textWidth * 1.5}px);
           }
           100% {
-            transform: translateX(${textWidth * 2}px);
+            transform: translateX(${textWidth * 2.5}px);
           }
         }
       `;
