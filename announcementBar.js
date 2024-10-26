@@ -1,4 +1,4 @@
-// HMStudio Announcement Bar v1.1.7
+// HMStudio Announcement Bar v1.1.8
 // Created by HMStudio
 // https://github.com/your-username/hmstudio-announcement
 
@@ -66,82 +66,109 @@
       height: 100%;
       display: flex;
       align-items: center;
-      transform: translateX(0);
     `;
 
-    // Add multiple copies of text
-    const textContent = document.createElement('span');
-    textContent.textContent = settings.announcementText;
-    textContent.style.cssText = `
+    // Create a single text element to measure width
+    const textSpan = document.createElement('span');
+    textSpan.textContent = settings.announcementText;
+    textSpan.style.cssText = `
       display: inline-block;
       padding: 0 3rem;
     `;
+    tickerContent.appendChild(textSpan);
 
-    // Calculate number of copies needed based on viewport width
-    const numCopies = Math.ceil((window.innerWidth * 2) / textContent.offsetWidth) + 2;
-    
-    for (let i = 0; i < numCopies; i++) {
-      const textCopy = textContent.cloneNode(true);
-      tickerContent.appendChild(textCopy);
-    }
-
-    // Add content to bar
+    // Add content to bar to measure
     bar.appendChild(tickerContent);
+    document.body.appendChild(bar);
 
-    // Insert at the top of the page
-    const targetLocation = document.querySelector('.header');
-    if (targetLocation) {
-      targetLocation.insertBefore(bar, targetLocation.firstChild);
-    } else {
-      document.body.insertBefore(bar, document.body.firstChild);
+    // Measure text width
+    const textWidth = textSpan.offsetWidth;
+    const viewportWidth = window.innerWidth;
+    const copiesNeeded = Math.ceil(viewportWidth / textWidth) + 2;
+
+    // Add necessary copies
+    for (let i = 1; i < copiesNeeded; i++) {
+      const clone = textSpan.cloneNode(true);
+      tickerContent.appendChild(clone);
     }
 
-    // Animation function
-    let translateX = 0;
-    const speed = (70 - settings.announcementSpeed) * 0.5; // Convert speed setting to actual speed
-    const contentWidth = tickerContent.scrollWidth;
+    // Prepare animation values
+    let animationId;
+    let position = 0;
+    let isPaused = false;
+    const baseSpeed = 2; // Base speed in pixels per frame
+    const speedMultiplier = (70 - settings.announcementSpeed) / 20; // Convert settings to speed
+    const moveAmount = baseSpeed * speedMultiplier;
+    const resetPosition = -textWidth;
 
     function animate() {
-      translateX += speed;
-      
-      // Reset translation when it exceeds content width
-      if (translateX >= contentWidth / numCopies) {
-        translateX = 0;
-      }
+      if (!isPaused) {
+        position += moveAmount;
 
-      tickerContent.style.transform = `translateX(${translateX}px)`;
-      requestAnimationFrame(animate);
+        // Reset position when first text is off screen
+        if (position >= 0) {
+          position = resetPosition;
+        }
+
+        tickerContent.style.transform = `translateX(${position}px)`;
+      }
+      animationId = requestAnimationFrame(animate);
     }
 
     // Start animation
-    requestAnimationFrame(animate);
+    animate();
 
-    // Pause on hover
+    // Add hover pause functionality
     bar.addEventListener('mouseenter', () => {
-      tickerContent.style.animationPlayState = 'paused';
+      isPaused = true;
     });
 
     bar.addEventListener('mouseleave', () => {
-      tickerContent.style.animationPlayState = 'running';
+      isPaused = false;
     });
 
-    // Handle window resize
-    function handleResize() {
-      const newNumCopies = Math.ceil((window.innerWidth * 2) / textContent.offsetWidth) + 2;
-      
-      // Add more copies if needed
-      while (tickerContent.children.length < newNumCopies) {
-        const textCopy = textContent.cloneNode(true);
-        tickerContent.appendChild(textCopy);
+    // Handle cleanup when bar is removed
+    function cleanup() {
+      if (animationId) {
+        cancelAnimationFrame(animationId);
       }
     }
 
-    window.addEventListener('resize', handleResize);
+    // Observe bar removal
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.removedNodes.forEach((node) => {
+          if (node === bar) {
+            cleanup();
+          }
+        });
+      });
+    });
 
-    // Handle font loading
-    if (document.fonts) {
-      document.fonts.ready.then(handleResize);
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+
+    // Move bar to final position
+    if (tickerContent.parentNode === bar) {
+      const targetLocation = document.querySelector('.header');
+      if (targetLocation) {
+        targetLocation.insertBefore(bar, targetLocation.firstChild);
+      }
     }
+
+    // Handle visibility change
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        isPaused = true;
+      } else {
+        isPaused = false;
+      }
+    });
+
+    // Cleanup on page unload
+    window.addEventListener('unload', cleanup);
   }
 
   // Initialize announcement bar
@@ -150,7 +177,6 @@
     if (settings && settings.announcementEnabled) {
       createAnnouncementBar({
         ...settings,
-        // Keep the original speed value (5-60) and convert it in the animation
         announcementSpeed: Math.max(5, Math.min(60, settings.announcementSpeed))
       });
     }
