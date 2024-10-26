@@ -1,4 +1,4 @@
-// HMStudio Announcement Bar v1.2.1
+// HMStudio Announcement Bar v1.2.2
 // Created by HMStudio
 // https://github.com/your-username/hmstudio-announcement
 
@@ -67,6 +67,7 @@
       display: flex;
       align-items: center;
       will-change: transform;
+      font-size: 15px;
     `;
 
     // Calculate number of copies needed (initial)
@@ -191,7 +192,7 @@
     if (settings && settings.announcementEnabled) {
       createAnnouncementBar({
         ...settings,
-        announcementSpeed: Math.max(5, Math.min(60, settings.announcementSpeed))
+        announcementSpeed: Math.max(10, Math.min(100, settings.announcementSpeed))
       });
     }
   }
