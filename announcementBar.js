@@ -1,4 +1,4 @@
-// HMStudio Announcement Bar v1.1.5
+// HMStudio Announcement Bar v1.1.6
 // Created by HMStudio
 // https://github.com/your-username/hmstudio-announcement
 
@@ -61,47 +61,56 @@
     const marqueeWrapper = document.createElement('div');
     marqueeWrapper.className = 'hmstudio-marquee-wrapper';
     marqueeWrapper.style.cssText = `
+      position: relative;
       width: 100%;
       height: 100%;
       overflow: hidden;
-      position: relative;
     `;
 
     // Create two inner containers for seamless animation
-    const createInnerContainer = () => {
-      const container = document.createElement('div');
-      container.className = 'hmstudio-marquee-content';
-      container.style.cssText = `
-        height: 100%;
-        display: flex;
-        align-items: center;
-        position: absolute;
-        left: 0;
-        top: 0;
-        white-space: nowrap;
-        will-change: transform;
-      `;
-      
-      // Add text span
-      const textSpan = document.createElement('span');
-      textSpan.textContent = settings.announcementText;
-      textSpan.style.cssText = `
-        display: inline-block;
-        padding: 0 3rem;
-      `;
-      container.appendChild(textSpan);
-      
-      return container;
-    };
+    const marqueeTrack = document.createElement('div');
+    marqueeTrack.className = 'hmstudio-marquee-track';
+    marqueeTrack.style.cssText = `
+      display: flex;
+      height: 100%;
+      width: max-content;
+      position: relative;
+    `;
 
-    // Create primary and clone containers
-    const primaryContainer = createInnerContainer();
-    const cloneContainer = createInnerContainer();
+    // Create two separate containers for continuous movement
+    for (let i = 0; i < 2; i++) {
+      const marqueeContent = document.createElement('div');
+      marqueeContent.className = 'hmstudio-marquee-content';
+      marqueeContent.style.cssText = `
+        display: flex;
+        height: 100%;
+        align-items: center;
+        animation: hmstudio-scroll ${settings.announcementSpeed}s linear infinite;
+        animation-delay: ${i * (settings.announcementSpeed / 2)}s;
+      `;
+
+      // Calculate number of copies needed based on viewport width
+      const viewportWidth = window.innerWidth;
+      const copiesNeeded = Math.ceil(viewportWidth / 100) + 2; // Adjust divisor as needed
+
+      // Add text copies to each container
+      for (let j = 0; j < copiesNeeded; j++) {
+        const textSpan = document.createElement('span');
+        textSpan.textContent = settings.announcementText;
+        textSpan.style.cssText = `
+          display: inline-block;
+          padding: 0 3rem;
+        `;
+        marqueeContent.appendChild(textSpan);
+      }
+
+      marqueeTrack.appendChild(marqueeContent);
+    }
 
     // Add animation keyframes
     const style = document.createElement('style');
     style.textContent = `
-      @keyframes hmstudio-ticker {
+      @keyframes hmstudio-scroll {
         0% {
           transform: translateX(-100%);
         }
@@ -110,39 +119,13 @@
         }
       }
       .hmstudio-marquee-wrapper:hover .hmstudio-marquee-content {
-        animation-play-state: paused !important;
+        animation-play-state: paused;
       }
     `;
     document.head.appendChild(style);
 
-    // Function to start animations
-    function startAnimation() {
-      const distance = primaryContainer.offsetWidth;
-      const duration = settings.announcementSpeed;
-      const gap = distance / 2; // Gap between texts
-
-      primaryContainer.style.animation = `hmstudio-ticker ${duration}s linear infinite`;
-      cloneContainer.style.animation = `hmstudio-ticker ${duration}s linear infinite`;
-      
-      // Position and animate containers
-      const setInitialPositions = () => {
-        // Calculate positions to ensure smooth transition
-        const startPos = -distance;
-        primaryContainer.style.transform = `translateX(${startPos}px)`;
-        cloneContainer.style.transform = `translateX(${startPos + gap}px)`;
-        
-        // Start animations with a slight delay between them
-        primaryContainer.style.animation = `hmstudio-ticker ${duration}s linear infinite`;
-        cloneContainer.style.animation = `hmstudio-ticker ${duration}s linear infinite`;
-        cloneContainer.style.animationDelay = `${duration / 2}s`;
-      };
-
-      setInitialPositions();
-    }
-
     // Assemble the components
-    marqueeWrapper.appendChild(primaryContainer);
-    marqueeWrapper.appendChild(cloneContainer);
+    marqueeWrapper.appendChild(marqueeTrack);
     bar.appendChild(marqueeWrapper);
 
     // Insert at the top of the page
@@ -153,19 +136,43 @@
       document.body.insertBefore(bar, document.body.firstChild);
     }
 
-    // Start animation after a brief delay to ensure rendering
-    setTimeout(startAnimation, 100);
+    // Function to handle window resize
+    function handleResize() {
+      const viewportWidth = window.innerWidth;
+      const copiesNeeded = Math.ceil(viewportWidth / 100) + 2;
 
-    // Handle resize
-    window.addEventListener('resize', () => {
-      startAnimation();
-    });
+      // Update copies for each container
+      document.querySelectorAll('.hmstudio-marquee-content').forEach(container => {
+        // Add more copies if needed
+        while (container.children.length < copiesNeeded) {
+          const textSpan = document.createElement('span');
+          textSpan.textContent = settings.announcementText;
+          textSpan.style.cssText = `
+            display: inline-block;
+            padding: 0 3rem;
+          `;
+          container.appendChild(textSpan);
+        }
+      });
+
+      // Reset animations
+      document.querySelectorAll('.hmstudio-marquee-content').forEach((content, i) => {
+        content.style.animation = 'none';
+        void content.offsetWidth;
+        content.style.animation = `hmstudio-scroll ${settings.announcementSpeed}s linear infinite`;
+        content.style.animationDelay = `${i * (settings.announcementSpeed / 2)}s`;
+      });
+    }
+
+    // Initial setup
+    setTimeout(handleResize, 100);
+
+    // Add resize listener
+    window.addEventListener('resize', handleResize);
 
     // Handle font loading
     if (document.fonts) {
-      document.fonts.ready.then(() => {
-        startAnimation();
-      });
+      document.fonts.ready.then(handleResize);
     }
   }
 
@@ -175,7 +182,7 @@
     if (settings && settings.announcementEnabled) {
       createAnnouncementBar({
         ...settings,
-        announcementSpeed: Math.max(5, Math.min(60, settings.announcementSpeed)) * 1.5
+        announcementSpeed: Math.max(5, Math.min(60, settings.announcementSpeed)) * 2
       });
     }
   }
