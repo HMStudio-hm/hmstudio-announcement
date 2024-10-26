@@ -1,4 +1,4 @@
-// HMStudio Announcement Bar v1.1.0
+// HMStudio Announcement Bar v1.1.1
 // Created by HMStudio
 // https://github.com/your-username/hmstudio-announcement
 
