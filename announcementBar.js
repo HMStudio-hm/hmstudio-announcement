@@ -1,4 +1,4 @@
-// HMStudio Announcement Bar v1.1.8
+// HMStudio Announcement Bar v1.1.9
 // Created by HMStudio
 // https://github.com/your-username/hmstudio-announcement
 
@@ -66,6 +66,7 @@
       height: 100%;
       display: flex;
       align-items: center;
+      left: 0;
     `;
 
     // Create a single text element to measure width
@@ -84,7 +85,7 @@
     // Measure text width
     const textWidth = textSpan.offsetWidth;
     const viewportWidth = window.innerWidth;
-    const copiesNeeded = Math.ceil(viewportWidth / textWidth) + 2;
+    const copiesNeeded = Math.ceil((viewportWidth * 2) / textWidth) + 2;
 
     // Add necessary copies
     for (let i = 1; i < copiesNeeded; i++) {
@@ -92,22 +93,20 @@
       tickerContent.appendChild(clone);
     }
 
-    // Prepare animation values
+    // Animation variables
     let animationId;
     let position = 0;
     let isPaused = false;
-    const baseSpeed = 2; // Base speed in pixels per frame
-    const speedMultiplier = (70 - settings.announcementSpeed) / 20; // Convert settings to speed
-    const moveAmount = baseSpeed * speedMultiplier;
-    const resetPosition = -textWidth;
+    const speed = (70 - settings.announcementSpeed) * 0.5; // Adjust speed based on settings
 
     function animate() {
       if (!isPaused) {
-        position += moveAmount;
-
-        // Reset position when first text is off screen
-        if (position >= 0) {
-          position = resetPosition;
+        position += speed;
+        
+        const maxPosition = textWidth; // When to reset position
+        
+        if (position >= maxPosition) {
+          position = 0;
         }
 
         tickerContent.style.transform = `translateX(${position}px)`;
@@ -115,8 +114,10 @@
       animationId = requestAnimationFrame(animate);
     }
 
-    // Start animation
-    animate();
+    // Start animation with a slight delay to ensure proper initialization
+    setTimeout(() => {
+      animate();
+    }, 100);
 
     // Add hover pause functionality
     bar.addEventListener('mouseenter', () => {
@@ -127,12 +128,26 @@
       isPaused = false;
     });
 
-    // Handle cleanup when bar is removed
+    // Handle cleanup
     function cleanup() {
       if (animationId) {
         cancelAnimationFrame(animationId);
       }
     }
+
+    // Move bar to final position
+    const targetLocation = document.querySelector('.header');
+    if (targetLocation) {
+      targetLocation.insertBefore(bar, targetLocation.firstChild);
+    }
+
+    // Handle visibility change
+    document.addEventListener('visibilitychange', () => {
+      isPaused = document.hidden;
+    });
+
+    // Cleanup on page unload
+    window.addEventListener('unload', cleanup);
 
     // Observe bar removal
     const observer = new MutationObserver((mutations) => {
@@ -140,6 +155,7 @@
         mutation.removedNodes.forEach((node) => {
           if (node === bar) {
             cleanup();
+            observer.disconnect();
           }
         });
       });
@@ -149,26 +165,6 @@
       childList: true,
       subtree: true
     });
-
-    // Move bar to final position
-    if (tickerContent.parentNode === bar) {
-      const targetLocation = document.querySelector('.header');
-      if (targetLocation) {
-        targetLocation.insertBefore(bar, targetLocation.firstChild);
-      }
-    }
-
-    // Handle visibility change
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        isPaused = true;
-      } else {
-        isPaused = false;
-      }
-    });
-
-    // Cleanup on page unload
-    window.addEventListener('unload', cleanup);
   }
 
   // Initialize announcement bar
