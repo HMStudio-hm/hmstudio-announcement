@@ -1,4 +1,4 @@
-// HMStudio Announcement Bar v1.0.6
+// HMStudio Announcement Bar v1.0.7
 // Created by HMStudio
 // https://github.com/your-username/hmstudio-announcement
 
@@ -53,74 +53,54 @@
       color: ${settings.announcementTextColor};
       overflow: hidden;
       height: 40px;
-      display: flex;
-      align-items: center;
       position: relative;
       z-index: 999999;
     `;
 
-    // Create ticker container
-    const tickerContainer = document.createElement('div');
-    tickerContainer.className = 'hmstudio-ticker-container';
-    tickerContainer.style.cssText = `
-      display: flex;
+    // Create marquee container
+    const marqueeContainer = document.createElement('div');
+    marqueeContainer.className = 'hmstudio-marquee-container';
+    marqueeContainer.style.cssText = `
       width: 100%;
       height: 100%;
-      overflow: hidden;
       position: relative;
-      align-items: center;
-      font-size: 15px;
+      overflow: hidden;
     `;
 
-    // Create ticker content
-    const ticker = document.createElement('div');
-    ticker.className = 'hmstudio-ticker';
-    ticker.style.cssText = `
+    // Create text element
+    const textElement = document.createElement('div');
+    textElement.className = 'hmstudio-marquee-text';
+    textElement.textContent = settings.announcementText;
+    textElement.style.cssText = `
+      position: absolute;
+      white-space: nowrap;
+      height: 100%;
       display: flex;
       align-items: center;
-      white-space: nowrap;
-      will-change: transform;
-      position: absolute;
-      right: 0;
-      animation: hmstudio-ticker ${settings.announcementSpeed}s linear infinite;
-      padding-right: 100%;
+      animation: hmstudio-marquee ${settings.announcementSpeed}s linear infinite;
+      padding: 0 20px;
     `;
-
-    // Calculate how many copies we need
-    const textLength = settings.announcementText.length;
-    const repeatCount = Math.ceil((window.innerWidth * 2) / (textLength * 8)) + 2;
-
-    // Add text copies to ensure smooth scrolling
-    for (let i = 0; i < repeatCount; i++) {
-      const textSpan = document.createElement('span');
-      textSpan.textContent = settings.announcementText;
-      textSpan.style.cssText = `
-        padding: 0 20px;
-        display: inline-block;
-      `;
-      ticker.appendChild(textSpan);
-    }
 
     // Add animation keyframes
     const style = document.createElement('style');
     style.textContent = `
-      @keyframes hmstudio-ticker {
-        0% {
-          transform: translate3d(-100%, 0, 0);
+      @keyframes hmstudio-marquee {
+        from {
+          transform: translateX(-100%);
         }
-        100% {
-          transform: translate3d(100%, 0, 0);
+        to {
+          transform: translateX(100vw);
         }
       }
-      .hmstudio-ticker-container:hover .hmstudio-ticker {
+      .hmstudio-marquee-container:hover .hmstudio-marquee-text {
         animation-play-state: paused;
       }
     `;
     document.head.appendChild(style);
 
     // Assemble the components
-    tickerContainer.appendChild(ticker);
-    bar.appendChild(tickerContainer);
+    marqueeContainer.appendChild(textElement);
+    bar.appendChild(marqueeContainer);
 
     // Insert at the top of the page
     const targetLocation = document.querySelector('.header');
@@ -130,21 +110,14 @@
       document.body.insertBefore(bar, document.body.firstChild);
     }
 
-    // Function to handle resize and update text copies if needed
+    // Function to handle window resize
     function handleResize() {
-      const newRepeatCount = Math.ceil((window.innerWidth * 2) / (textLength * 8)) + 2;
-      if (newRepeatCount > ticker.children.length) {
-        // Add more text copies if needed
-        for (let i = ticker.children.length; i < newRepeatCount; i++) {
-          const textSpan = document.createElement('span');
-          textSpan.textContent = settings.announcementText;
-          textSpan.style.cssText = `
-            padding: 0 20px;
-            display: inline-block;
-          `;
-          ticker.appendChild(textSpan);
-        }
-      }
+      // Restart animation to adjust to new window size
+      textElement.style.animation = 'none';
+      // Force reflow
+      void textElement.offsetWidth;
+      // Restart animation
+      textElement.style.animation = `hmstudio-marquee ${settings.announcementSpeed}s linear infinite`;
     }
 
     // Add resize listener
@@ -157,8 +130,7 @@
     if (settings && settings.announcementEnabled) {
       createAnnouncementBar({
         ...settings,
-        // Convert the speed to be more appropriate for the new animation style
-        announcementSpeed: Math.max(5, Math.min(60, settings.announcementSpeed)) * 2
+        announcementSpeed: Math.max(5, Math.min(60, settings.announcementSpeed)) * 0.75 // Adjust timing
       });
     }
   }
