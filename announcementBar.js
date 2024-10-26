@@ -1,4 +1,4 @@
-// HMStudio Announcement Bar v1.0.3
+// HMStudio Announcement Bar v1.0.4
 // Created by HMStudio
 // https://github.com/your-username/hmstudio-announcement
 
@@ -59,44 +59,61 @@
       z-index: 999999;
     `;
 
-    // Create inner container for smooth animation
-    const innerContainer = document.createElement('div');
-    innerContainer.style.cssText = `
+    // Create scrolling container
+    const scrollContainer = document.createElement('div');
+    scrollContainer.className = 'announcement-scroll-container';
+    scrollContainer.style.cssText = `
       display: flex;
-      align-items: center;
       position: relative;
       white-space: nowrap;
       will-change: transform;
-      animation: hmstudio-scroll ${settings.announcementSpeed}s linear infinite;
     `;
 
-    // Calculate how many times to repeat the text
-    const textLength = settings.announcementText.length;
-    const repeatCount = Math.ceil(window.innerWidth / (textLength * 8)) + 2; // Adjust multiplier as needed
+    // Create primary content container
+    const contentContainer = document.createElement('div');
+    contentContainer.className = 'announcement-content';
+    contentContainer.style.cssText = `
+      display: flex;
+      animation: scrollLeft ${settings.announcementSpeed}s linear infinite;
+      padding-left: 100%;
+    `;
 
-    // Create multiple text spans for seamless loop
-    for (let i = 0; i < repeatCount; i++) {
-      const textSpan = document.createElement('span');
-      textSpan.textContent = settings.announcementText;
-      textSpan.style.cssText = `
-        padding: 0 20px;
-        display: inline-block;
-      `;
-      innerContainer.appendChild(textSpan);
-    }
+    // Add text with proper spacing
+    const textSpan = document.createElement('span');
+    textSpan.style.cssText = `
+      white-space: nowrap;
+      padding: 0 50px;
+    `;
+    textSpan.textContent = settings.announcementText;
+
+    // Create duplicate for seamless loop
+    const textSpan2 = textSpan.cloneNode(true);
+
+    // Add text elements to content container
+    contentContainer.appendChild(textSpan);
+    contentContainer.appendChild(textSpan2);
 
     // Add animation keyframes
     const style = document.createElement('style');
     style.textContent = `
-      @keyframes hmstudio-scroll {
-        0% { transform: translate3d(-50%, 0, 0); }
-        100% { transform: translate3d(0%, 0, 0); }
+      @keyframes scrollLeft {
+        0% {
+          transform: translateX(0);
+        }
+        100% {
+          transform: translateX(-100%);
+        }
+      }
+      
+      .announcement-content {
+        -webkit-font-smoothing: antialiased;
       }
     `;
     document.head.appendChild(style);
 
-    // Assemble and insert the bar
-    bar.appendChild(innerContainer);
+    // Assemble the components
+    scrollContainer.appendChild(contentContainer);
+    bar.appendChild(scrollContainer);
 
     // Insert at the top of the page
     const targetLocation = document.querySelector('.header');
@@ -106,35 +123,38 @@
       document.body.insertBefore(bar, document.body.firstChild);
     }
 
-    // Function to handle resize
-    function handleResize() {
-      // Update the number of text copies based on new window width
-      const newRepeatCount = Math.ceil(window.innerWidth / (textLength * 8)) + 2;
-      
-      // Only update if we need more copies
-      if (newRepeatCount > innerContainer.children.length) {
-        while (innerContainer.children.length < newRepeatCount) {
-          const textSpan = document.createElement('span');
-          textSpan.textContent = settings.announcementText;
-          textSpan.style.cssText = `
-            padding: 0 20px;
-            display: inline-block;
-          `;
-          innerContainer.appendChild(textSpan);
+    // Function to handle visibility changes
+    function handleVisibilityChange() {
+      const content = document.querySelector('.announcement-content');
+      if (content) {
+        if (document.hidden) {
+          content.style.animationPlayState = 'paused';
+        } else {
+          content.style.animationPlayState = 'running';
         }
       }
     }
 
-    // Add resize listener
-    window.addEventListener('resize', handleResize);
+    // Add visibility change listener
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Pause animation when not in viewport
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        const content = entry.target.querySelector('.announcement-content');
+        if (content) {
+          content.style.animationPlayState = entry.isIntersecting ? 'running' : 'paused';
+        }
+      });
+    });
+
+    observer.observe(bar);
   }
 
   // Initialize announcement bar
   async function initializeAnnouncementBar() {
     const settings = await fetchAnnouncementSettings();
     if (settings && settings.announcementEnabled) {
-      // Convert speed from range 5-60 to actual animation duration
-      settings.announcementSpeed = Math.max(5, Math.min(60, settings.announcementSpeed));
       createAnnouncementBar(settings);
     }
   }
@@ -142,7 +162,7 @@
   // Run initialization
   initializeAnnouncementBar();
 
-  // Optional: Re-initialize on dynamic content changes
+  // Re-initialize on dynamic content changes
   const observer = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
       if (mutation.type === 'childList' && !document.getElementById('hmstudio-announcement-bar')) {
