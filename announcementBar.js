@@ -1,4 +1,4 @@
-// HMStudio Announcement Bar v1.2.4
+// HMStudio Announcement Bar v1.2.5
 // Created by HMStudio
 // https://github.com/your-username/hmstudio-announcement
 
@@ -192,7 +192,7 @@
     if (settings && settings.announcementEnabled) {
       createAnnouncementBar({
         ...settings,
-        announcementSpeed: Math.max(10, Math.min(100, settings.announcementSpeed))
+        announcementSpeed: Math.max(5, Math.min(60, settings.announcementSpeed))
       });
     }
   }
