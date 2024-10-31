@@ -1,4 +1,4 @@
-// HMStudio Announcement Bar v1.2.5
+// HMStudio Announcement Bar v1.2.6
 // Created by HMStudio
 // https://github.com/your-username/hmstudio-announcement
 
@@ -67,7 +67,7 @@
       display: flex;
       align-items: center;
       will-change: transform;
-      font-size: 15px;
+      transform: translateX(0);
     `;
 
     // Calculate number of copies needed (initial)
@@ -111,37 +111,52 @@
     // Animation variables
     let currentPosition = 0;
     let lastTimestamp = 0;
-    const pixelsPerSecond = (70 - settings.announcementSpeed) * 20; // Adjust speed
     let animationId;
     let isPaused = false;
 
+    // Convert speed setting to pixels per second
+    // Adjust these values to slow down the animation
+    const minSpeed = 10; // Minimum speed in pixels per second
+    const maxSpeed = 100; // Maximum speed in pixels per second
+    const speedRange = maxSpeed - minSpeed;
+    const speedPercentage = (60 - settings.announcementSpeed) / 55; // Convert 5-60 range to 0-1
+    const pixelsPerSecond = minSpeed + (speedRange * speedPercentage);
+
     function updateAnimation(timestamp) {
       if (!lastTimestamp) lastTimestamp = timestamp;
-      const deltaTime = timestamp - lastTimestamp;
-      lastTimestamp = timestamp;
-
+      
       if (!isPaused) {
-        // Calculate movement based on time
-        const movement = (pixelsPerSecond * deltaTime) / 1000;
+        // Calculate time difference in seconds
+        const deltaTime = (timestamp - lastTimestamp) / 1000;
+        
+        // Update position using precise calculations
+        const movement = pixelsPerSecond * deltaTime;
         currentPosition += movement;
 
         // Reset position when necessary
         if (currentPosition >= textWidth) {
-          currentPosition = 0;
+          // Adjust position to maintain smoothness
+          currentPosition = currentPosition % textWidth;
+          
           // Move first item to end for smooth transition
           const firstItem = tickerContent.children[0];
           tickerContent.appendChild(firstItem.cloneNode(true));
           tickerContent.removeChild(firstItem);
         }
 
-        tickerContent.style.transform = `translateX(${currentPosition}px)`;
+        // Use transform3d for smoother animation
+        tickerContent.style.transform = `translate3d(${currentPosition}px, 0, 0)`;
       }
 
+      lastTimestamp = timestamp;
       animationId = requestAnimationFrame(updateAnimation);
     }
 
-    // Start animation
-    animationId = requestAnimationFrame(updateAnimation);
+    // Start animation with a slight delay to ensure proper initialization
+    setTimeout(() => {
+      lastTimestamp = 0;
+      animationId = requestAnimationFrame(updateAnimation);
+    }, 100);
 
     // Add hover pause functionality
     bar.addEventListener('mouseenter', () => {
@@ -180,6 +195,11 @@
         const clone = tickerContent.children[0].cloneNode(true);
         tickerContent.appendChild(clone);
       }
+
+      // Reset position for smooth transition after resize
+      currentPosition = 0;
+      lastTimestamp = 0;
+      tickerContent.style.transform = `translate3d(${currentPosition}px, 0, 0)`;
     });
 
     // Cleanup on page unload
@@ -192,6 +212,7 @@
     if (settings && settings.announcementEnabled) {
       createAnnouncementBar({
         ...settings,
+        // Keep original speed value (5-60)
         announcementSpeed: Math.max(5, Math.min(60, settings.announcementSpeed))
       });
     }
