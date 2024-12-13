@@ -1,9 +1,11 @@
-// HMStudio Announcement Bar v1.2.6
+// HMStudio Announcement Bar v1.2.7
 // Created by HMStudio
 // https://github.com/your-username/hmstudio-announcement
 
 (function() {
   console.log('Announcement Bar script initialized');
+  console.log('Announcement Bar script loaded');
+console.log('Store ID:', storeId); // Make sure storeId is correctly passed
 
   function getStoreIdFromUrl() {
     const scriptTag = document.currentScript;
