@@ -1,11 +1,9 @@
-// HMStudio Announcement Bar v1.2.7
+// HMStudio Announcement Bar v1.2.8
 // Created by HMStudio
 // https://github.com/your-username/hmstudio-announcement
 
 (function() {
   console.log('Announcement Bar script initialized');
-  console.log('Announcement Bar script loaded');
-console.log('Store ID:', storeId); // Make sure storeId is correctly passed
 
   function getStoreIdFromUrl() {
     const scriptTag = document.currentScript;
@@ -103,12 +101,27 @@ console.log('Store ID:', storeId); // Make sure storeId is correctly passed
     bar.appendChild(tickerContent);
 
     // Insert at the top of the page
-    const targetLocation = document.querySelector('.header');
-    if (targetLocation) {
-      targetLocation.insertBefore(bar, targetLocation.firstChild);
-    } else {
-      document.body.insertBefore(bar, document.body.firstChild);
-    }
+    const possibleSelectors = [
+  '.header', // Soft theme
+  'header[role="banner"]', // Other themes
+  '#navbar', // Direct navbar insertion if needed
+  'nav.navbar' // Generic navbar class
+];
+
+let targetLocation = null;
+for (const selector of possibleSelectors) {
+  const element = document.querySelector(selector);
+  if (element) {
+    targetLocation = element;
+    break;
+  }
+}
+
+if (targetLocation) {
+  targetLocation.insertBefore(bar, targetLocation.firstChild);
+} else {
+  document.body.insertBefore(bar, document.body.firstChild);
+}
 
     // Animation variables
     let currentPosition = 0;
